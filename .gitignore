@@ -1,0 +1,21 @@
+# Environment and secrets
+.env
+*.env
+
+# APK & Decompiled assets
+*.xapk
+*.apk
+extracted/
+dex/
+jadx_*/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE / System
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

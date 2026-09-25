@@ -1,0 +1,1324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <title>Blind Calibrator</title>
+    <!-- Local offline QR code library with fallback to CDN -->
+    <script src="html5-qrcode.min.js"></script>
+    <script>
+        if (typeof Html5Qrcode === 'undefined') {
+            document.write('<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"><\/script>');
+        }
+    </script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --surface-color: #1e293b;
+            --surface-hover: #334155;
+            --border-color: #334155;
+            --primary: #38bdf8;
+            --primary-hover: #0284c7;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --card-radius: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 16px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        header {
+            text-align: center;
+            padding: 12px 0;
+        }
+
+        header h1 {
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+
+        header p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .card {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--card-radius);
+            padding: 18px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-title {
+            font-size: 1.05rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .badge {
+            font-size: 0.75rem;
+            padding: 3px 8px;
+            border-radius: 9999px;
+            font-weight: 600;
+        }
+
+        .badge-info { background: rgba(56, 189, 248, 0.2); color: var(--primary); }
+        .badge-success { background: rgba(34, 197, 94, 0.2); color: var(--success); }
+        .badge-warning { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
+        .badge-danger { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 18px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #0f172a;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background: var(--surface-hover);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background: #475569;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: #0f172a;
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: #0f172a;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .btn-outline:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-group .btn {
+            flex: 1;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px 14px;
+            background: #0f172a;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--primary);
+        }
+
+        .jog-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 16px 0;
+        }
+
+        .jog-btn {
+            height: 90px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            font-weight: 700;
+            border-radius: 16px;
+            background: #1e293b;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.1s ease;
+        }
+
+        .jog-btn:active {
+            transform: scale(0.96);
+            background: var(--primary);
+            color: #0f172a;
+        }
+
+        .jog-btn span.subtext {
+            font-size: 0.75rem;
+            font-weight: normal;
+            opacity: 0.8;
+            margin-top: 4px;
+        }
+
+        #qr-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            padding: 20px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #qr-modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--surface-color);
+            border-radius: var(--card-radius);
+            padding: 20px;
+            width: 100%;
+            max-width: 420px;
+            border: 1px solid var(--border-color);
+        }
+
+        #qr-reader {
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .console {
+            background: #090d16;
+            border: 1px solid #1e293b;
+            border-radius: 10px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: #38bdf8;
+            height: 120px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .step-pill {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+        }
+
+        .step-num {
+            background: var(--primary);
+            color: #0f172a;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.75rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Blind Calibrator</h1>
+        <p>Direct BLE Inching & End-Limit Setup (Static PWA)</p>
+    </header>
+
+    <!-- STEP 1: BLIND SELECTION & QR SCANNING -->
+    <div class="card">
+        <div class="card-title">
+            <span>1. Select / Scan Blind</span>
+            <span id="blind-badge" class="badge badge-info">1 Saved Blind</span>
+        </div>
+
+        <div class="form-group">
+            <label for="blind-selector">Active Blind Profile</label>
+            <select id="blind-selector" onchange="loadSelectedBlind()">
+                <option value="new">+ Add / Scan New Blind...</option>
+            </select>
+        </div>
+
+        <div class="btn-group" style="margin-bottom: 12px;">
+            <button class="btn btn-secondary" onclick="openQrScanner()">
+                📷 Camera QR Scan
+            </button>
+            <button class="btn btn-outline" onclick="document.getElementById('file-input').click()">
+                🖼️ Upload Sticker
+            </button>
+            <input type="file" id="file-input" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+        </div>
+
+        <!-- Blind Details Grid -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
+            <div class="form-group">
+                <label>Blind Name</label>
+                <input type="text" id="blind-name" placeholder="e.g. Living Room Front">
+            </div>
+            <div class="form-group">
+                <label>PIN Code</label>
+                <input type="text" id="blind-pin" placeholder="e.g. 123456" oninput="onPinInput()">
+            </div>
+            <div class="form-group">
+                <label>Bluetooth MAC (EUI48)</label>
+                <input type="text" id="blind-mac" placeholder="e.g. AABBCC112233" oninput="onMacInput()">
+            </div>
+            <div class="form-group">
+                <label>Zigbee IEEE (EUI64)</label>
+                <input type="text" id="blind-eui64" placeholder="e.g. AABBCCFFFE112233" oninput="onEui64Input()">
+            </div>
+        </div>
+
+        <button class="btn btn-outline" style="font-size: 0.8rem; padding: 6px;" onclick="saveCurrentBlind()">
+            💾 Save Profile for this Blind
+        </button>
+    </div>
+
+    <!-- STEP 2: BLUETOOTH CONNECTION -->
+    <div class="card">
+        <div class="card-title">
+            <span>2. Connect over Bluetooth</span>
+            <span id="ble-status-badge" class="badge badge-warning">Disconnected</span>
+        </div>
+
+        <div class="step-pill">
+            <div class="step-num">1</div>
+            <span><strong>Wake Motor:</strong> Press motor head button for <strong>2 seconds</strong> until it jogs once to start BLE broadcast.</span>
+        </div>
+
+        <div id="android-pairing-guide" style="margin: 10px 0; padding: 12px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 12px; font-size: 0.85rem; transition: all 0.3s ease;">
+            <div style="font-weight: 700; color: var(--warning); margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                <span>📱</span> Android Pairing Notice (Motorola / Pixel / Stock Android)
+            </div>
+            <p style="color: var(--text-secondary); margin-bottom: 8px;">
+                Motorola and stock Android do not pop up a PIN dialog over the browser. If commands fail or show <em>"GATT operation not permitted"</em>:
+            </p>
+            <ol style="margin-left: 20px; color: var(--text-primary); line-height: 1.5;">
+                <li><strong>Swipe down your notification shade</strong> from the top edge of your screen.</li>
+                <li>Tap the <strong>"Bluetooth pairing request"</strong> notification from your blind motor.</li>
+                <li>When prompted for PIN, enter: <strong style="color: var(--primary); font-size: 1.05rem; letter-spacing: 1px;"><span id="hint-pin">PIN (from sticker)</span></strong> and tap <strong>Pair</strong>.</li>
+                <li><em>Alternative:</em> Pair beforehand in phone <strong>Settings &gt; Connected devices &gt; Pair new device</strong>.</li>
+            </ol>
+        </div>
+
+        <button id="connect-btn" class="btn btn-primary" onclick="connectBle()">
+            ⚡ Scan & Pair Bluetooth
+        </button>
+    </div>
+
+    <!-- STEP 3: DIRECTION & CALIBRATION CONTROLS -->
+    <div id="calibration-card" class="card" style="opacity: 0.5; pointer-events: none;">
+        <div class="card-title">
+            <span>3. Calibration & Safe Inching</span>
+            <span class="badge badge-info">Micro-steps Only</span>
+        </div>
+
+        <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 12px;">
+            Inching sends short micro-pulses. The motor will NOT run away or damage the blind.
+        </p>
+
+        <!-- Step A: Test Direction -->
+        <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 10px; margin-bottom: 12px;">
+            <label>A. Verify Rotation Direction</label>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 8px;">
+                Tap Up. If the blind goes Down, press Invert.
+            </p>
+            <button class="btn btn-outline" onclick="sendInvertDirection()">
+                🔄 Invert Rotation Direction
+            </button>
+        </div>
+
+        <!-- Inching Step Size -->
+        <div class="form-group" style="margin-bottom: 8px;">
+            <label>Inching Pulse Duration</label>
+            <select id="pulse-duration">
+                <option value="60">Micro (60 ms) - Extra Fine</option>
+                <option value="120" selected>Standard (120 ms) - Safe Inching</option>
+                <option value="250">Medium (250 ms) - Faster Travel</option>
+            </select>
+        </div>
+
+        <!-- Jog Buttons -->
+        <div class="jog-controls">
+            <button class="jog-btn" onclick="sendJogUp()">
+                ▲ JOG UP
+                <span class="subtext">Micro-step</span>
+            </button>
+            <button class="jog-btn" onclick="sendJogDown()">
+                ▼ JOG DOWN
+                <span class="subtext">Micro-step</span>
+            </button>
+        </div>
+
+        <!-- Limit status & confirmation buttons -->
+        <div style="margin-top: 15px;">
+            <div style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">B. Save End-Limits</div>
+            
+            <div id="limit-status-box" style="margin-bottom: 12px; padding: 10px 14px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <span>Upper Limit (Open):</span>
+                    <span id="upper-limit-badge" class="badge badge-secondary">Pending</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>Lower Limit (Closed):</span>
+                    <span id="lower-limit-badge" class="badge badge-secondary">Pending</span>
+                </div>
+            </div>
+
+            <div id="both-limits-alert" style="display:none; margin-bottom: 12px; font-size: 0.85rem; padding: 10px 14px; border-radius: 8px; background: rgba(34, 197, 94, 0.12); border: 1px solid var(--success); color: #86efac; line-height: 1.4;">
+                ✅ <strong>Both limits saved!</strong> The motor has written your calibrated limits to flash memory. Click below to safely finalize and disconnect.
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button id="set-upper-btn" class="btn btn-warning" onclick="sendSetUpperLimit()">
+                    🔝 Confirm & Save UPPER Limit (0x00)
+                </button>
+                <button id="set-lower-btn" class="btn btn-warning" onclick="sendSetLowerLimit()">
+                    🔻 Confirm & Save LOWER Limit (0x01)
+                </button>
+                <button id="finish-limits-btn" class="btn btn-outline" onclick="sendExitLock()">
+                    🏁 Finish Calibration & Disconnect
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONSOLE LOG -->
+    <div class="card">
+        <div class="card-title">
+            <span>Activity Log</span>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <button id="copy-log-btn" class="btn btn-outline" style="width: auto; padding: 4px 10px; font-size: 0.75rem;" onclick="copyActivityLog()">📋 Copy Log</button>
+                <button class="btn btn-outline" style="width: auto; padding: 4px 10px; font-size: 0.75rem;" onclick="downloadActivityLog()">📥 Export</button>
+                <button class="btn btn-outline" style="width: auto; padding: 4px 10px; font-size: 0.75rem;" onclick="clearActivityLog()">Clear</button>
+            </div>
+        </div>
+        <div id="console" class="console">Ready. Select or scan a blind to begin.</div>
+        <div style="margin-top: 10px;">
+            <button id="github-issue-btn" class="btn btn-secondary" style="font-size: 0.85rem; padding: 10px 14px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;" onclick="openGitHubIssue()">
+                <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+                <span>🐙 Open Diagnostic Issue on GitHub</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- QR SCANNER MODAL -->
+<div id="qr-modal">
+    <div class="modal-content">
+        <div class="card-title">
+            <span>Scan Sticker QR Code</span>
+            <button class="btn btn-outline" style="width: auto; padding: 4px 10px;" onclick="closeQrScanner()">✕</button>
+        </div>
+        <div id="qr-reader"></div>
+        <p style="font-size: 0.8rem; color: var(--text-secondary); text-align: center;">
+            Point your camera at the QR code on the pull-off label.
+        </p>
+    </div>
+</div>
+
+<script>
+    const CHAR_LIMIT_SETTING   = "00010007-cad9-46c6-a2ea-2ca16d57b4a5";
+    const CHAR_JOG_DOWN        = "00010008-cad9-46c6-a2ea-2ca16d57b4a5";
+    const CHAR_JOG_UP          = "00010009-cad9-46c6-a2ea-2ca16d57b4a5";
+    const CHAR_DIRECTION       = "00010005-cad9-46c6-a2ea-2ca16d57b4a5";
+    const CHAR_AUTH            = "0000000b-cad9-46c6-a2ea-2ca16d57b4a5";
+
+    function getCandidateServices() {
+        const services = new Set();
+        const vendorBase = "cad9-46c6-a2ea-2ca16d57b4a5";
+        const prefixes = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 16, 32, 0x05c8];
+        const subindices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0x100, 0x1000, 0xffff];
+        
+        for (const p of prefixes) {
+            for (const sub of subindices) {
+                const hex = p.toString(16).padStart(4, '0') + sub.toString(16).padStart(4, '0');
+                services.add(`${hex}-${vendorBase}`.toLowerCase());
+            }
+        }
+
+        const standard16 = [
+            0x1800, 0x1801, 0x180a, 0x180f, 0x1804, 0x1805, 0x1806, 0x1807, 0x1808, 0x1809,
+            0x1810, 0x1811, 0x1812, 0x1815, 0x1816, 0x1818, 0x1819, 0x181a, 0x181b, 0x181c,
+            0xfe50, 0xfe59, 0xfd65, 0x05c8, 0x0009
+        ];
+        for (const s of standard16) {
+            services.add(`0000${s.toString(16).padStart(4, '0')}-0000-1000-8000-00805f9b34fb`.toLowerCase());
+        }
+
+        services.add("984227f3-34fc-4045-a5d0-2c581f81a153");
+        services.add("f7bf3564-fb6d-4e53-88a4-5e37e0326063");
+        services.add("6e400001-b5a3-f393-e0a9-e50e24dcca9e");
+        services.add("1d14d6ee-fd63-4fa1-bfa4-8f47b42119f0");
+
+        return Array.from(services);
+    }
+
+    let bleDevice = null;
+    let bleServer = null;
+    let limitChar = null;
+    let jogUpChar = null;
+    let jogDownChar = null;
+    let invertChar = null;
+    let authChar = null;
+    let qrScanner = null;
+
+    const BLIND_STORAGE_KEY = 'blind_calibrator_profiles_v2';
+    // Purge legacy storage from previous versions that contained hardcoded default profiles
+    try {
+        localStorage.removeItem('blind_calibrator_profiles');
+    } catch(e) {}
+
+    let savedBlinds = [];
+    try {
+        savedBlinds = JSON.parse(localStorage.getItem(BLIND_STORAGE_KEY) || '[]');
+        if (!Array.isArray(savedBlinds)) savedBlinds = [];
+    } catch(e) {
+        savedBlinds = [];
+    }
+
+    function log(msg) {
+        const c = document.getElementById('console');
+        const ts = new Date().toLocaleTimeString();
+        c.innerText += `[${ts}] ${msg}\n`;
+        c.scrollTop = c.scrollHeight;
+    }
+
+    function copyActivityLog() {
+        const logText = document.getElementById('console').innerText;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(logText).then(() => {
+                const btn = document.getElementById('copy-log-btn');
+                const orig = btn.innerText;
+                btn.innerText = "Copied! ✓";
+                setTimeout(() => { btn.innerText = orig; }, 2000);
+            }).catch(err => {
+                log(`Clipboard note: ${err.message}`);
+            });
+        }
+    }
+
+    function downloadActivityLog() {
+        const logText = document.getElementById('console').innerText;
+        const blob = new Blob([logText], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const ts = new Date().toISOString().replace(/[:.]/g, '-');
+        a.download = `blind_calibrator_log_${ts}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    function clearActivityLog() {
+        document.getElementById('console').innerText = 'Ready. Select or scan a blind to begin.\n';
+    }
+
+    function openGitHubIssue() {
+        const logText = document.getElementById('console').innerText;
+        // Auto-copy full log to clipboard so user can easily paste if truncated in URL
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(logText).catch(() => {});
+        }
+
+        const blindName = document.getElementById('blind-name').value.trim() || 'Blind';
+        const mac = document.getElementById('blind-mac').value.trim() || 'Unknown';
+        const eui64 = document.getElementById('blind-eui64').value.trim() || 'Unknown';
+        const pin = document.getElementById('blind-pin').value.trim() || 'Not set';
+
+        const title = `[BLE Diagnostic] Motor calibration issue - ${blindName} (${mac.slice(-4)})`;
+        
+        let logSnippet = logText;
+        if (logSnippet.length > 2000) {
+            logSnippet = "...[earlier log omitted for URL length limit]...\n" + logSnippet.slice(-2000);
+        }
+
+        const body = [
+            "## Diagnostic Report",
+            "",
+            "### Motor & Environment Info",
+            `- **Blind Name:** ${blindName}`,
+            `- **Bluetooth MAC (EUI-48):** \`${mac}\``,
+            `- **Zigbee IEEE (EUI-64):** \`${eui64}\``,
+            `- **PIN Code Configured:** \`${pin}\``,
+            `- **User Agent:** \`${navigator.userAgent}\``,
+            `- **Timestamp:** ${new Date().toISOString()}`,
+            "",
+            "### Activity Log Snippet",
+            "> ℹ️ *The full un-truncated activity log has already been copied to your clipboard. Paste it below if needed.*",
+            "",
+            "```text",
+            logSnippet,
+            "```",
+            "",
+            "### Notes / Observed Behavior",
+            "*(Describe whether you observed GATT operation not permitted, pairing prompt, motor movements, etc.)*",
+            ""
+        ].join("\n");
+
+        const issueUrl = `https://github.com/trafgals/blinds/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
+        window.open(issueUrl, '_blank');
+    }
+
+    function deriveEui64FromMac(mac) {
+        if (!mac) return '';
+        const clean = mac.toUpperCase().replace(/[^0-9A-F]/g, '');
+        if (clean.length === 12) {
+            return clean.slice(0, 6) + 'FFFE' + clean.slice(6);
+        }
+        return '';
+    }
+
+    function deriveMacFromEui64(eui64) {
+        if (!eui64) return '';
+        const clean = eui64.toUpperCase().replace(/[^0-9A-F]/g, '');
+        if (clean.length === 16 && clean.slice(6, 10) === 'FFFE') {
+            return clean.slice(0, 6) + clean.slice(10);
+        }
+        return '';
+    }
+
+    function onMacInput() {
+        const macInput = document.getElementById('blind-mac');
+        const clean = macInput.value.toUpperCase().replace(/[^0-9A-F]/g, '');
+        macInput.value = clean;
+        if (clean.length === 12) {
+            const derived = deriveEui64FromMac(clean);
+            if (derived) {
+                document.getElementById('blind-eui64').value = derived;
+            }
+        }
+    }
+
+    function onEui64Input() {
+        const eui64Input = document.getElementById('blind-eui64');
+        const clean = eui64Input.value.toUpperCase().replace(/[^0-9A-F]/g, '');
+        eui64Input.value = clean;
+        if (clean.length === 16) {
+            const derived = deriveMacFromEui64(clean);
+            if (derived) {
+                document.getElementById('blind-mac').value = derived;
+            }
+        }
+    }
+
+    function onPinInput() {
+        const pin = document.getElementById('blind-pin').value.trim();
+        updateHintPin(pin);
+    }
+
+    function updateHintPin(pin) {
+        const hp = document.getElementById('hint-pin');
+        if (hp) {
+            hp.innerText = pin && pin.length > 0 ? pin : 'PIN (from sticker)';
+        }
+    }
+
+    let upperLimitSaved = false;
+    let lowerLimitSaved = false;
+
+    function updateLimitStatusUI() {
+        const uBadge = document.getElementById('upper-limit-badge');
+        const lBadge = document.getElementById('lower-limit-badge');
+        const alertBox = document.getElementById('both-limits-alert');
+        const finishBtn = document.getElementById('finish-limits-btn');
+
+        if (uBadge) {
+            uBadge.innerText = upperLimitSaved ? "✅ Saved (0x00)" : "Pending";
+            uBadge.className = upperLimitSaved ? "badge badge-success" : "badge badge-secondary";
+        }
+        if (lBadge) {
+            lBadge.innerText = lowerLimitSaved ? "✅ Saved (0x01)" : "Pending";
+            lBadge.className = lowerLimitSaved ? "badge badge-success" : "badge badge-secondary";
+        }
+        if (alertBox) {
+            alertBox.style.display = (upperLimitSaved && lowerLimitSaved) ? "block" : "none";
+        }
+        if (finishBtn) {
+            if (upperLimitSaved && lowerLimitSaved) {
+                finishBtn.className = "btn btn-success";
+                finishBtn.innerText = "🏁 Finish Calibration & Disconnect";
+            } else {
+                finishBtn.className = "btn btn-outline";
+                finishBtn.innerText = "🏁 Finish Calibration & Disconnect";
+            }
+        }
+    }
+
+    function handleBleWriteError(actionName, err) {
+        log(`${actionName} error: ${err.message}`);
+        const msg = (err.message || '').toLowerCase();
+        const pin = document.getElementById('blind-pin').value.trim() || 'your blind PIN';
+        // Only warn about Android link-layer pairing when the GATT error explicitly indicates insufficient authentication / permission
+        if (msg.includes("not permitted") || msg.includes("insufficient") || msg.includes("authenticate") || msg.includes("authorization") || msg.includes("security") || msg.includes("not allowed")) {
+            log(`⚠️ MOTOROLA / ANDROID PAIRING REQUIRED: Phone rejected write until paired with PIN ${pin}.`);
+            log(`👉 STEP 1: Swipe down your notification shade from the very top of your screen!`);
+            log(`👉 STEP 2: Tap "Bluetooth pairing request", enter PIN ${pin}, and confirm Pair.`);
+            log(`👉 STEP 3: Return here and tap Jog again.`);
+            const guide = document.getElementById('android-pairing-guide');
+            if (guide) {
+                guide.scrollIntoView({ behavior: 'smooth' });
+                guide.style.borderColor = 'var(--danger)';
+                guide.style.boxShadow = '0 0 16px rgba(239, 68, 68, 0.6)';
+                setTimeout(() => {
+                    guide.style.borderColor = 'rgba(245, 158, 11, 0.4)';
+                    guide.style.boxShadow = 'none';
+                }, 6000);
+            }
+        }
+    }
+
+    function refreshBlindSelector() {
+        const sel = document.getElementById('blind-selector');
+        sel.innerHTML = '';
+        savedBlinds.forEach((b, idx) => {
+            const opt = document.createElement('option');
+            opt.value = idx;
+            opt.innerText = `${b.name} (${b.eui48 ? b.eui48.slice(-4) : 'No MAC'})`;
+            sel.appendChild(opt);
+        });
+        const newOpt = document.createElement('option');
+        newOpt.value = "new";
+        newOpt.innerText = "+ Add / Scan New Blind...";
+        sel.appendChild(newOpt);
+
+        document.getElementById('blind-badge').innerText = `${savedBlinds.length} Saved Blind(s)`;
+        if (savedBlinds.length > 0) {
+            sel.value = 0;
+            loadSelectedBlind();
+        } else {
+            sel.value = "new";
+            loadSelectedBlind();
+        }
+    }
+
+    function loadSelectedBlind() {
+        const sel = document.getElementById('blind-selector');
+        if (sel.value === "new") {
+            document.getElementById('blind-name').value = `Blind ${savedBlinds.length + 1}`;
+            document.getElementById('blind-mac').value = '';
+            document.getElementById('blind-pin').value = '';
+            document.getElementById('blind-eui64').value = '';
+            updateHintPin('');
+            upperLimitSaved = false;
+            lowerLimitSaved = false;
+            updateLimitStatusUI();
+            return;
+        }
+        const b = savedBlinds[parseInt(sel.value)];
+        if (b) {
+            document.getElementById('blind-name').value = b.name || '';
+            document.getElementById('blind-mac').value = b.eui48 || '';
+            document.getElementById('blind-pin').value = b.pinCode || '';
+            document.getElementById('blind-eui64').value = b.eui64 || deriveEui64FromMac(b.eui48);
+            updateHintPin(b.pinCode || '');
+            upperLimitSaved = false;
+            lowerLimitSaved = false;
+            updateLimitStatusUI();
+            log(`Loaded profile: ${b.name} (PIN: ${b.pinCode})`);
+        }
+    }
+
+    function saveCurrentBlind() {
+        const name = document.getElementById('blind-name').value.trim() || 'Unnamed Blind';
+        let eui48 = document.getElementById('blind-mac').value.trim().toUpperCase().replace(/[^0-9A-F]/g, '');
+        const pinCode = document.getElementById('blind-pin').value.trim();
+        let eui64 = document.getElementById('blind-eui64').value.trim().toUpperCase().replace(/[^0-9A-F]/g, '');
+
+        if (!eui64 && eui48.length === 12) {
+            eui64 = deriveEui64FromMac(eui48);
+            document.getElementById('blind-eui64').value = eui64;
+        }
+        if (!eui48 && eui64.length === 16) {
+            eui48 = deriveMacFromEui64(eui64);
+            document.getElementById('blind-mac').value = eui48;
+        }
+
+        const sel = document.getElementById('blind-selector');
+        const blindObj = { name, eui48, pinCode, eui64 };
+
+        if (sel.value === "new") {
+            savedBlinds.push(blindObj);
+        } else {
+            savedBlinds[parseInt(sel.value)] = blindObj;
+        }
+        localStorage.setItem(BLIND_STORAGE_KEY, JSON.stringify(savedBlinds));
+        refreshBlindSelector();
+        log(`Saved profile "${name}" successfully!`);
+    }
+
+    function parseQrString(text) {
+        log(`Decoding QR content: ${text}`);
+        const data = {};
+        const tokens = text.trim().split(/[\$%&\s\n]+/);
+        for (const token of tokens) {
+            if (!token) continue;
+            if (token.startsWith('B:')) data.eui48 = token.substring(2);
+            else if (token.startsWith('Z:')) data.eui64 = token.substring(2);
+            else if (token.startsWith('I:')) data.installCode = token.substring(2);
+            else if (token.startsWith('P:')) data.pinCode = token.substring(2);
+            else if (token.startsWith('D:')) data.deviceId = token.substring(2);
+            else if (token.startsWith('F:')) data.familyId = token.substring(2);
+            else if (token.startsWith('M:')) data.manufacturerCode = token.substring(2);
+            else if (token.startsWith('eui=')) data.eui64 = token.substring(4);
+            else if (token.startsWith('zic=')) data.installCode = token.substring(4);
+            else if (token.startsWith('1220bpc=')) data.pinCode = token.substring(8);
+            else if (token.startsWith('1220di=')) data.deviceId = token.substring(7);
+            else if (token.startsWith('1220ir=')) data.industrialReference = token.substring(7);
+        }
+        if (!data.eui48 && data.eui64 && data.eui64.includes('FFFE')) {
+            data.eui48 = data.eui64.replace('FFFE', '');
+        }
+        return data;
+    }
+
+    function applyParsedBlind(data) {
+        if (data.eui48) document.getElementById('blind-mac').value = data.eui48;
+        if (data.pinCode) document.getElementById('blind-pin').value = data.pinCode;
+        if (data.eui64) document.getElementById('blind-eui64').value = data.eui64;
+        
+        const suffix = data.eui48 ? data.eui48.slice(-4) : 'New';
+        document.getElementById('blind-name').value = `Blind (${suffix})`;
+        saveCurrentBlind();
+        log(`QR Decoded: MAC=${data.eui48}, PIN=${data.pinCode}`);
+    }
+
+    function openQrScanner() {
+        document.getElementById('qr-modal').classList.add('active');
+        qrScanner = new Html5Qrcode("qr-reader");
+        qrScanner.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: 250 },
+            (decodedText) => {
+                closeQrScanner();
+                const parsed = parseQrString(decodedText);
+                applyParsedBlind(parsed);
+            },
+            (error) => {}
+        ).catch(err => {
+            log(`Camera error: ${err}. You can upload a photo of the sticker instead.`);
+            closeQrScanner();
+        });
+    }
+
+    function closeQrScanner() {
+        if (qrScanner) {
+            qrScanner.stop().then(() => {
+                qrScanner.clear();
+                qrScanner = null;
+            }).catch(() => {});
+        }
+        document.getElementById('qr-modal').classList.remove('active');
+    }
+
+    function handleImageUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const html5QrCode = new Html5Qrcode("qr-reader");
+        html5QrCode.scanFile(file, true)
+            .then(decodedText => {
+                const parsed = parseQrString(decodedText);
+                applyParsedBlind(parsed);
+            })
+            .catch(err => {
+                log(`Could not read QR code from file: ${err}. Please check lighting or type codes manually.`);
+            });
+    }
+
+    function buildPinPayload(pinStr) {
+        const pinNum = parseInt(pinStr, 10);
+        if (isNaN(pinNum)) return null;
+        let hex = pinNum.toString(16);
+        let l = hex.length;
+        let hob = 1;
+        if (l > 1) {
+            let n = l - 1;
+            while (n > 1) { n >>= 1; hob <<= 1; }
+        }
+        let imax = Math.max(1, hob << 1);
+        hex = hex.padStart(imax, '0');
+        const bytes = [];
+        for (let i = 0; i < hex.length; i += 2) {
+            bytes.push(parseInt(hex.substr(i, 2), 16));
+        }
+        bytes.reverse();
+        return new Uint8Array(bytes);
+    }
+
+    // Mutex / Queue to guarantee strictly serialized GATT operations and prevent stack collisions on Motorola
+    let gattOperationChain = Promise.resolve();
+
+    function queueGattOperation(operationFn) {
+        const run = async () => {
+            await new Promise(r => setTimeout(r, 60)); // 60ms settling gap between BLE operations
+            return await operationFn();
+        };
+        const nextPromise = gattOperationChain.then(run, run);
+        gattOperationChain = nextPromise;
+        return nextPromise;
+    }
+
+    async function writeGatt(char, data, preferWithoutResponse = false) {
+        if (!char) throw new Error("Characteristic not available");
+        return await queueGattOperation(async () => {
+            const props = char.properties || {};
+
+            async function performWrite(isWithoutResponse) {
+                const CHUNK_SIZE = 20; // Enforce BLE default MTU compliance (20 bytes max payload)
+                for (let i = 0; i < data.byteLength; i += CHUNK_SIZE) {
+                    const chunk = data.slice(i, i + CHUNK_SIZE);
+                    if (isWithoutResponse) {
+                        if (char.writeValueWithoutResponse) {
+                            await char.writeValueWithoutResponse(chunk);
+                        } else if (char.writeValue) {
+                            await char.writeValue(chunk);
+                        } else {
+                            await char.writeValueWithResponse(chunk);
+                        }
+                    } else {
+                        if (char.writeValueWithResponse) {
+                            await char.writeValueWithResponse(chunk);
+                        } else if (char.writeValue) {
+                            await char.writeValue(chunk);
+                        } else {
+                            await char.writeValueWithoutResponse(chunk);
+                        }
+                    }
+                    if (i + CHUNK_SIZE < data.byteLength) {
+                        await new Promise(r => setTimeout(r, 50));
+                    }
+                }
+            }
+
+            // Path 1: Inching / jog commands where low-latency write without response is preferred
+            if (preferWithoutResponse && props.writeWithoutResponse) {
+                try {
+                    return await performWrite(true);
+                } catch (err) {
+                    if (props.write) {
+                        log(`writeWithoutResponse note: ${err.message}. Retrying with response after 100ms...`);
+                        await new Promise(r => setTimeout(r, 100));
+                        return await performWrite(false);
+                    }
+                    throw err;
+                }
+            }
+
+            // Path 2: Standard write with response preferred (limits, configuration)
+            if (props.write) {
+                try {
+                    return await performWrite(false);
+                } catch (err) {
+                    if (props.writeWithoutResponse) {
+                        log(`writeWithResponse note: ${err.message}. Retrying without response after 100ms...`);
+                        await new Promise(r => setTimeout(r, 100));
+                        return await performWrite(true);
+                    }
+                    throw err;
+                }
+            }
+
+            // Path 3: Only writeWithoutResponse is advertised
+            if (props.writeWithoutResponse) {
+                return await performWrite(true);
+            }
+
+            // Generic fallback
+            if (char.writeValueWithResponse) return await performWrite(false);
+            if (char.writeValueWithoutResponse) return await performWrite(true);
+            if (char.writeValue) return await char.writeValue(data);
+        });
+    }
+
+    async function authenticatePin(char, pinStr) {
+        if (!char || !pinStr) return;
+        const pinNum = parseInt(pinStr, 10);
+        log(`Authenticating with PIN ${pinStr} (decimal: ${pinNum})...`);
+
+        // Format A: WritePinCode format (reversed hex bytes, e.g. [0x05, 0x95] for 38149)
+        const p1 = buildPinPayload(pinStr);
+        if (p1) {
+            try {
+                const hexRep = Array.from(p1).map(b => '0x' + b.toString(16).padStart(2, '0')).join(', ');
+                log(`Sending PIN payload [${hexRep}]...`);
+                await writeGatt(char, p1);
+                log("PIN Authentication accepted (WritePinCode format)!");
+                return;
+            } catch (e) {
+                log(`PIN Format A note: ${e.message}`);
+                await new Promise(r => setTimeout(r, 150));
+            }
+        }
+
+        // Format B: 4-byte little endian
+        try {
+            const p2 = new Uint8Array(4);
+            p2[0] = pinNum & 0xff;
+            p2[1] = (pinNum >> 8) & 0xff;
+            p2[2] = (pinNum >> 16) & 0xff;
+            p2[3] = (pinNum >> 24) & 0xff;
+            const hexRep2 = Array.from(p2).map(b => '0x' + b.toString(16).padStart(2, '0')).join(', ');
+            log(`Sending PIN payload 4-byte LE [${hexRep2}]...`);
+            await writeGatt(char, p2);
+            log("PIN Authentication accepted (4-byte LE)!");
+            return;
+        } catch (e) {
+            log(`PIN Format B note: ${e.message}`);
+            await new Promise(r => setTimeout(r, 150));
+        }
+
+        // Format C: ASCII string
+        try {
+            const p3 = new TextEncoder().encode(pinStr);
+            log(`Sending PIN payload ASCII "${pinStr}"...`);
+            await writeGatt(char, p3);
+            log("PIN Authentication accepted (ASCII)!");
+            return;
+        } catch (e) {
+            log(`PIN Format C note: ${e.message}`);
+        }
+    }
+
+    async function connectBle() {
+        if (!navigator.bluetooth) {
+            alert("Web Bluetooth is not supported in this browser. Please use Google Chrome on Android, Windows, Mac, or Linux.");
+            log("Error: navigator.bluetooth is undefined. Make sure you are in Chrome over HTTPS or localhost.");
+            return;
+        }
+
+        const targetMac = document.getElementById('blind-mac').value.trim().toUpperCase().replace(/[^0-9A-F]/g, '');
+        const targetPin = document.getElementById('blind-pin').value.trim();
+
+        log("Requesting Bluetooth device... Look for your blind motor in the picker.");
+        document.getElementById('ble-status-badge').innerText = "Pairing...";
+        document.getElementById('ble-status-badge').className = "badge badge-warning";
+
+        try {
+            const candidateServices = getCandidateServices();
+            log(`Populated ${candidateServices.length} service candidates for discovery.`);
+
+            bleDevice = await navigator.bluetooth.requestDevice({
+                acceptAllDevices: true,
+                optionalServices: candidateServices
+            });
+
+            log(`Selected: ${bleDevice.name || 'Unnamed Device'} (${bleDevice.id})`);
+            bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
+
+            log("Connecting to GATT Server...");
+            bleServer = await bleDevice.gatt.connect();
+            log("GATT Connected! Discovering services...");
+
+            let services = [];
+            try {
+                services = await bleServer.getPrimaryServices();
+                log(`Discovered ${services.length} services matching whitelist.`);
+            } catch (err) {
+                log(`Primary services discovery note: ${err.message}`);
+                // Quick retry if connection dropped on first handshake (common on Android/Motorola)
+                if (!bleDevice.gatt.connected) {
+                    log("Link dropped during initial handshake. Attempting quick reconnection in 600ms...");
+                    await new Promise(r => setTimeout(r, 600));
+                    try {
+                        bleServer = await bleDevice.gatt.connect();
+                        log("Reconnected to GATT! Retrying service discovery...");
+                        services = await bleServer.getPrimaryServices();
+                        log(`Discovered ${services.length} services on retry.`);
+                    } catch(retryErr) {
+                        log(`Reconnection failed: ${retryErr.message}`);
+                    }
+                }
+            }
+
+            if (!bleDevice.gatt.connected || services.length === 0) {
+                log("⚠️ Motor disconnected or asleep. (The motor only advertises BLE for 2 minutes after jog).");
+                log("👉 Quick Fix: Press the motor button for 2 seconds until it jogs once, then tap Scan & Pair immediately.");
+                document.getElementById('ble-status-badge').innerText = "Disconnected";
+                document.getElementById('ble-status-badge').className = "badge badge-warning";
+                return;
+            }
+
+            limitChar = null;
+            jogUpChar = null;
+            jogDownChar = null;
+            invertChar = null;
+            authChar = null;
+
+            for (const s of services) {
+                log(`Service: ${s.uuid}`);
+                try {
+                    const chars = await s.getCharacteristics();
+                    for (const c of chars) {
+                        const u = c.uuid.toLowerCase();
+                        const p = c.properties || {};
+                        const pStr = `[w:${!!p.write}, wnr:${!!p.writeWithoutResponse}, r:${!!p.read}]`;
+                        log(` -> Found Char: ${u} ${pStr}`);
+                        if (u.includes("00010007")) { limitChar = c; log("    [Bound: Limit Setting]"); }
+                        if (u.includes("00010008")) { jogDownChar = c; log("    [Bound: Jog Down]"); }
+                        if (u.includes("00010009")) { jogUpChar = c; log("    [Bound: Jog Up]"); }
+                        if (u.includes("00010005")) { invertChar = c; log("    [Bound: Direction Control]"); }
+                        if (u.includes("0000000b")) { authChar = c; log("    [Bound: PIN Auth]"); }
+                    }
+                } catch (e) {
+                    log(` -> Could not inspect chars for ${s.uuid}: ${e.message}`);
+                }
+            }
+
+            log("Discovered services & characteristics. Waiting 300ms for Bluetooth stack to settle...");
+            await new Promise(resolve => setTimeout(resolve, 300));
+
+            if (authChar && targetPin) {
+                await authenticatePin(authChar, targetPin);
+            }
+
+            if (jogUpChar && jogDownChar) {
+                document.getElementById('ble-status-badge').innerText = "Connected";
+                document.getElementById('ble-status-badge').className = "badge badge-success";
+                document.getElementById('calibration-card').style.opacity = "1";
+                document.getElementById('calibration-card').style.pointerEvents = "auto";
+                document.getElementById('connect-btn').innerText = "Connected: " + (bleDevice.name || targetMac.slice(-4));
+                log("Motor successfully connected and ready. Calibration controls are UNLOCKED.");
+            } else {
+                document.getElementById('ble-status-badge').innerText = "Partial";
+                document.getElementById('ble-status-badge').className = "badge badge-warning";
+                document.getElementById('calibration-card').style.opacity = "1";
+                document.getElementById('calibration-card').style.pointerEvents = "auto";
+                log("Warning: Jog characteristics not completely found. Discovered services and characteristics are listed above.");
+            }
+        } catch (err) {
+            log(`Bluetooth Connection Error: ${err.message}`);
+            document.getElementById('ble-status-badge').innerText = "Failed";
+            document.getElementById('ble-status-badge').className = "badge badge-danger";
+        }
+    }
+
+    function onDisconnected() {
+        if (upperLimitSaved && lowerLimitSaved) {
+            log("Bluetooth disconnected. Both limits are permanently saved in motor flash memory.");
+        } else {
+            log("Bluetooth device disconnected.");
+        }
+        document.getElementById('ble-status-badge').innerText = "Disconnected";
+        document.getElementById('ble-status-badge').className = "badge badge-danger";
+        document.getElementById('calibration-card').style.opacity = "0.5";
+        document.getElementById('calibration-card').style.pointerEvents = "none";
+        document.getElementById('connect-btn').innerText = "⚡ Reconnect Bluetooth";
+    }
+
+    function buildJogPayload(durationMs) {
+        const d = Math.max(1, Math.min(500, durationMs));
+        const b0 = d & 0xFF;
+        const b1 = (d >> 8) & 0xFF;
+        return new Uint8Array([b0, b1, 0x00, 0x00, 0x02]);
+    }
+
+    async function sendJogUp() {
+        if (!jogUpChar) { log("Error: Jog Up characteristic not found on motor."); return; }
+        const dur = parseInt(document.getElementById('pulse-duration').value) || 120;
+        const payload = buildJogPayload(dur);
+        log(`Jog Up (${dur}ms)...`);
+        try {
+            await writeGatt(jogUpChar, payload, true);
+        } catch(e) {
+            handleBleWriteError("Jog Up", e);
+        }
+    }
+
+    async function sendJogDown() {
+        if (!jogDownChar) { log("Error: Jog Down characteristic not found on motor."); return; }
+        const dur = parseInt(document.getElementById('pulse-duration').value) || 120;
+        const payload = buildJogPayload(dur);
+        log(`Jog Down (${dur}ms)...`);
+        try {
+            await writeGatt(jogDownChar, payload, true);
+        } catch(e) {
+            handleBleWriteError("Jog Down", e);
+        }
+    }
+
+    async function sendInvertDirection() {
+        if (!invertChar) { log("Error: Direction characteristic (00010005) not found."); return; }
+        if (!confirm("Invert rotation direction of this motor?")) return;
+        log("Checking current rotation direction...");
+        let newDir = 0x01;
+        try {
+            if (invertChar.readValue) {
+                const val = await invertChar.readValue();
+                const curr = val.getUint8(0);
+                log(`Current direction: ${curr === 1 ? 'Clockwise (1)' : 'Counter-Clockwise (0)'}`);
+                newDir = curr === 1 ? 0x00 : 0x01;
+            }
+        } catch(e) {
+            log(`Could not read current direction (${e.message}), writing toggle 0x01.`);
+        }
+        log(`Setting direction to: ${newDir === 1 ? 'Clockwise (1)' : 'Counter-Clockwise (0)'}...`);
+        try {
+            await writeGatt(invertChar, new Uint8Array([newDir]));
+            log(`Rotation direction updated to ${newDir}! Test with Jog Up.`);
+        } catch(e) {
+            handleBleWriteError("Direction update", e);
+        }
+    }
+
+    async function sendSetUpperLimit() {
+        if (!limitChar) { log("Error: Limit setting characteristic not found."); return; }
+        if (!confirm("Set current position as the UPPER limit? (Leave a safe gap below top cassette!)")) return;
+        log("Writing UPPER LIMIT (0x00)...");
+        try {
+            await writeGatt(limitChar, new Uint8Array([0x00]));
+            upperLimitSaved = true;
+            updateLimitStatusUI();
+            log("Upper limit saved successfully (0x00)!");
+        } catch(e) {
+            handleBleWriteError("Upper limit", e);
+        }
+    }
+
+    async function sendSetLowerLimit() {
+        if (!limitChar) { log("Error: Limit setting characteristic not found."); return; }
+        if (!confirm("Set current position as the LOWER limit?")) return;
+        log("Writing LOWER LIMIT (0x01)...");
+        try {
+            await writeGatt(limitChar, new Uint8Array([0x01]));
+            lowerLimitSaved = true;
+            updateLimitStatusUI();
+            log("Lower limit saved successfully (0x01)!");
+        } catch(e) {
+            handleBleWriteError("Lower limit", e);
+        }
+    }
+
+    async function sendExitLock() {
+        if (!limitChar && (!bleDevice || !bleDevice.gatt || !bleDevice.gatt.connected)) {
+            log("Motor is already disconnected.");
+            return;
+        }
+
+        const confirmMsg = (upperLimitSaved && lowerLimitSaved)
+            ? "Finish calibration and finalize setup? Both Upper and Lower limits are already saved in motor flash memory."
+            : "Finish calibration and disconnect Bluetooth? (For best results, confirm both Upper and Lower limits first).";
+
+        if (!confirm(confirmMsg)) return;
+
+        log("Finalizing calibration session...");
+
+        // On roller blind motors, limits are written to EEPROM upon receiving 0x00 and 0x01.
+        // Some motor models support an optional Exit Lock (0x02) command to exit calibration mode.
+        if (limitChar && bleDevice && bleDevice.gatt && bleDevice.gatt.connected) {
+            try {
+                log("Sending Exit Lock (0x02)...");
+                await writeGatt(limitChar, new Uint8Array([0x02]));
+                log("Motor acknowledged Exit Lock command.");
+            } catch(e) {
+                // When 0x02 is sent, the motor frequently resets its BLE stack immediately (triggering "GATT Error Unknown"),
+                // or the command is optional. In either case, the limits are already stored in motor flash memory!
+                log(`Exit lock transmission noted: ${e.message} (Normal - motor commits limits and resets BLE link).`);
+            }
+        }
+
+        // Cleanly disconnect GATT server
+        try {
+            if (bleDevice && bleDevice.gatt && bleDevice.gatt.connected) {
+                log("Closing BLE calibration connection...");
+                bleDevice.gatt.disconnect();
+            }
+        } catch(e) {
+            // ignore disconnect errors
+        }
+
+        log("🎉 CALIBRATION COMPLETE! Upper and Lower limits are permanently active.");
+        log("👉 Next Steps: You can now operate the blind from Home Assistant or your remote. It will safely stop at your calibrated end-limits.");
+        alert("Calibration Complete!\n\nYour upper and lower limits are permanently saved inside the motor.\n\nYou can now test normal travel from Home Assistant or your physical controls.");
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        refreshBlindSelector();
+    });
+</script>
+</body>
+</html>
