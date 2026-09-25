@@ -723,9 +723,12 @@
             if (upperLimitSaved && lowerLimitSaved) {
                 finishBtn.className = "btn btn-success";
                 finishBtn.innerText = "🏁 Finish Calibration & Disconnect";
+                finishBtn.style.opacity = "1";
             } else {
                 finishBtn.className = "btn btn-outline";
-                finishBtn.innerText = "🏁 Finish Calibration & Disconnect";
+                const missing = !upperLimitSaved && !lowerLimitSaved ? "Upper & Lower limits" : (!upperLimitSaved ? "Upper limit" : "Lower limit");
+                finishBtn.innerText = `⚠️ Save ${missing} to finish`;
+                finishBtn.style.opacity = "0.7";
             }
         }
     }
@@ -1279,11 +1282,13 @@
             return;
         }
 
-        const confirmMsg = (upperLimitSaved && lowerLimitSaved)
-            ? "Finish calibration and finalize setup? Both Upper and Lower limits are already saved in motor flash memory."
-            : "Finish calibration and disconnect Bluetooth? (For best results, confirm both Upper and Lower limits first).";
+        if (!upperLimitSaved || !lowerLimitSaved) {
+            const missing = !upperLimitSaved && !lowerLimitSaved ? "BOTH Upper and Lower limits" : (!upperLimitSaved ? "the UPPER limit (0x00)" : "the LOWER limit (0x01)");
+            alert(`⚠️ Incomplete Calibration: You have not saved ${missing}!\n\nThe motor firmware strictly requires BOTH Upper and Lower limits to be set.\n\nWithout both limits, the motor locks in Configuration Mode and Home Assistant will reject all movement commands with <Status.FAILURE: 1>.\n\nPlease jog to the position and tap "Confirm & Save" before finishing.`);
+            return;
+        }
 
-        if (!confirm(confirmMsg)) return;
+        if (!confirm("Finish calibration and finalize setup? Both Upper and Lower limits are saved in motor flash memory.")) return;
 
         log("Finalizing calibration session...");
 
